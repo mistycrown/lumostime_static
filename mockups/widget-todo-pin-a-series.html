@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Widget Drafts A Series</title>
+  <link rel="stylesheet" href="/fonts/fonts.css" />
+  <style>
+    :root {
+      --paper: #f6f0e6;
+      --paper-deep: #efe5d6;
+      --ink: #1f1b16;
+      --ink-soft: #6c6359;
+      --line: rgba(54, 44, 33, 0.16);
+      --line-strong: rgba(31, 27, 22, 0.3);
+      --accent: #202020;
+      --danger: #8c2f1c;
+      --today: #ede4d5;
+      --pin: #e4ddd0;
+      --surface: rgba(255, 255, 255, 0.5);
+      --shadow: 0 24px 60px rgba(76, 61, 43, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top, rgba(255, 251, 244, 0.92), rgba(235, 227, 214, 0.95)),
+        linear-gradient(180deg, #ebe4d8 0%, #e4dccf 100%);
+      font-family: 'Zhuque Fangsong', 'LXGW Neo ZhiSong', 'Noto Serif SC', 'Songti SC', serif;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(70, 56, 40, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(70, 56, 40, 0.03) 1px, transparent 1px);
+      background-size: 24px 24px;
+      opacity: 0.3;
+      mix-blend-mode: multiply;
+    }
+
+    .page {
+      position: relative;
+      max-width: 1480px;
+      margin: 0 auto;
+      padding: 42px 28px 60px;
+    }
+
+    .hero {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px 28px;
+      align-items: end;
+      justify-content: space-between;
+      margin-bottom: 30px;
+    }
+
+    .hero-copy {
+      max-width: 760px;
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--ink-soft);
+      font-family: 'IBM Plex Mono', 'Courier New', monospace;
+      font-size: 12px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(28px, 4vw, 52px);
+      line-height: 1.04;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+    }
+
+    .hero p {
+      margin: 12px 0 0;
+      max-width: 680px;
+      color: var(--ink-soft);
+      font-size: 15px;
+      line-height: 1.8;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .legend-chip {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 7px 12px;
+      background: rgba(255, 250, 244, 0.58);
+      color: var(--ink-soft);
+      font-family: 'IBM Plex Mono', 'Courier New', monospace;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 28px;
+      align-items: start;
+    }
+
+    .draft {
+      display: grid;
+      gap: 12px;
+    }
+
+    .draft-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      padding: 0 4px;
+    }
+
+    .draft-meta strong {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+
+    .draft-meta span {
+      color: var(--ink-soft);
+      font-size: 13px;
+      line-height: 1.6;
+      text-align: right;
+    }
+
+    .widget {
+      position: relative;
+      aspect-ratio: 2.15 / 1;
+      border: 1px solid rgba(52, 42, 31, 0.16);
+      border-radius: 28px;
+      overflow: hidden;
+      background:
+        linear-gradient(180deg, rgba(255, 251, 245, 0.94), rgba(244, 235, 222, 0.94)),
+        var(--paper);
+      box-shadow: var(--shadow);
+      isolation: isolate;
+    }
+
+    .widget::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.52), transparent 35%),
+        radial-gradient(circle at 15% 10%, rgba(255, 255, 255, 0.55), transparent 30%);
+      opacity: 0.65;
+      mix-blend-mode: screen;
+    }
+
+    .widget-shell {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      padding: 18px 18px 16px;
+    }
+
+    .widget-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 14px;
+      margin-bottom: 10px;
+    }
+
+    .widget-title {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .widget-title strong {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+    }
+
+    .widget-title span,
+    .widget-side {
+      color: var(--ink-soft);
+      font-family: 'IBM Plex Mono', 'Courier New', monospace;
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .task-scroll {
+      min-height: 0;
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding-right: 5px;
+      margin-right: -5px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(31, 27, 22, 0.22) transparent;
+    }
+
+    .task-scroll::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    .task-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .task-scroll::-webkit-scrollbar-thumb {
+      border-radius: 999px;
+      background: rgba(31, 27, 22, 0.18);
+    }
+
+    .task-list {
+      display: grid;
+      gap: 6px;
+    }
+
+    .task-row {
+      display: grid;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .task-copy {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .task-label {
+      flex: 0 0 auto;
+      min-width: 44px;
+      border-radius: 999px;
+      padding: 3px 7px 2px;
+      text-align: center;
+      font-family: 'IBM Plex Mono', 'Courier New', monospace;
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(31, 27, 22, 0.76);
+      border: 1px solid rgba(31, 27, 22, 0.08);
+      white-space: nowrap;
+    }
+
+    .task-label[data-kind='today'] {
+      background: var(--today);
+    }
+
+    .task-label[data-kind='pin'] {
+      background: var(--pin);
+    }
+
+    .task-name {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 16px;
+      line-height: 1.2;
+    }
+
+    .task-note {
+      flex: 0 0 auto;
+      color: var(--ink-soft);
+      font-family: 'IBM Plex Mono', 'Courier New', monospace;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .task-button {
+      justify-self: end;
+      min-width: 66px;
+      border: 1px solid rgba(31, 27, 22, 0.2);
+      border-radius: 999px;
+      padding: 8px 10px 7px;
+      background: rgba(255, 251, 245, 0.85);
+      color: var(--ink);
+      font-family: 'IBM Plex Mono', 'Courier New', monospace;
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform 0.18s ease, background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+    }
+
+    .task-button:hover {
+      transform: translateY(-1px);
+      border-color: rgba(31, 27, 22, 0.36);
+    }
+
+    .task-button[data-active='true'] {
+      background: var(--accent);
+      color: #f7f2e9;
+      border-color: var(--accent);
+    }
+
+    .task-button[data-active='true']:hover {
+      background: #151515;
+    }
+
+    .task-button:focus-visible {
+      outline: 2px solid rgba(31, 27, 22, 0.35);
+      outline-offset: 2px;
+    }
+
+    .widget-footnote {
+      margin-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--ink-soft);
+      font-family: 'IBM Plex Mono', 'Courier New', monospace;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .widget--folio .widget-shell {
+      padding: 18px 18px 16px;
+    }
+
+    .widget--folio .widget-title strong {
+      font-size: 16px;
+      letter-spacing: 0.12em;
+    }
+
+    .widget--folio .task-row {
+      grid-template-columns: minmax(0, 1fr) auto;
+      border-bottom: 1px solid rgba(58, 47, 35, 0.08);
+      padding-bottom: 7px;
+    }
+
+    .widget--folio .task-row:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .widget--ledger {
+      background:
+        linear-gradient(180deg, rgba(255, 251, 245, 0.97), rgba(245, 238, 228, 0.97)),
+        repeating-linear-gradient(
+          180deg,
+          transparent 0,
+          transparent 30px,
+          rgba(93, 75, 53, 0.085) 30px,
+          rgba(93, 75, 53, 0.085) 31px
+        );
+    }
+
+    .widget--ledger .widget-shell {
+      padding: 18px 18px 14px;
+    }
+
+    .widget--ledger .widget-header {
+      padding-bottom: 10px;
+      margin-bottom: 10px;
+      border-bottom: 1px solid rgba(31, 27, 22, 0.12);
+    }
+
+    .widget--ledger .task-list {
+      gap: 2px;
+    }
+
+    .widget--ledger .task-row {
+      grid-template-columns: minmax(0, 1fr) auto;
+      min-height: 31px;
+    }
+
+    .widget--ledger .task-label {
+      background: transparent;
+      border: none;
+      padding: 0;
+      min-width: 38px;
+      text-align: left;
+      color: rgba(31, 27, 22, 0.58);
+    }
+
+    .widget--ledger .task-name {
+      position: relative;
+      padding-left: 10px;
+    }
+
+    .widget--ledger .task-name::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: rgba(31, 27, 22, 0.6);
+      transform: translateY(-50%);
+    }
+
+    .widget--proof .widget-shell {
+      padding: 18px 17px 16px;
+    }
+
+    .widget--proof::before {
+      content: '';
+      position: absolute;
+      left: 16px;
+      top: 14px;
+      bottom: 14px;
+      width: 1px;
+      background: linear-gradient(180deg, transparent, rgba(128, 84, 47, 0.28), transparent);
+      pointer-events: none;
+    }
+
+    .widget--proof .widget-header {
+      padding-left: 12px;
+    }
+
+    .widget--proof .task-list {
+      gap: 7px;
+      padding-left: 12px;
+    }
+
+    .widget--proof .task-row {
+      grid-template-columns: minmax(0, 1fr) auto;
+      border: 1px solid rgba(31, 27, 22, 0.08);
+      border-radius: 16px;
+      background: rgba(255, 252, 247, 0.68);
+      padding: 7px 8px 7px 10px;
+    }
+
+    .widget--proof .task-copy {
+      gap: 10px;
+    }
+
+    .widget--proof .task-label {
+      min-width: 35px;
+      padding: 0;
+      border: none;
+      border-radius: 0;
+      background: transparent;
+      color: rgba(31, 27, 22, 0.5);
+    }
+
+    .widget--proof .task-note {
+      display: none;
+    }
+
+    .widget--proof .widget-footnote {
+      padding-left: 12px;
+    }
+
+    .guide {
+      margin-top: 34px;
+      border-top: 1px solid rgba(31, 27, 22, 0.1);
+      padding-top: 16px;
+      color: var(--ink-soft);
+      font-size: 14px;
+      line-height: 1.8;
+    }
+
+    .guide strong {
+      color: var(--ink);
+    }
+
+    @media (max-width: 760px) {
+      .page {
+        padding: 28px 18px 42px;
+      }
+
+      .hero {
+        margin-bottom: 24px;
+      }
+
+      .draft-meta {
+        align-items: start;
+        flex-direction: column;
+      }
+
+      .widget {
+        border-radius: 24px;
+      }
+
+      .widget-shell {
+        padding: 16px;
+      }
+
+      .task-name {
+        font-size: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Widget Drafts / A Series / 4x2</p>
+        <h1>今天待办 + Pin 待办，合成一列的极简印刷风草稿</h1>
+        <p>已选中 `A1 / 书页清单` 作为后续方向，并补上真实小组件更需要的约束：任务区内容始终收在圆角边框内，超出时只在卡片内部纵向滑动。每个按钮都可以直接点击，模拟“从桌面开始记时，再次点击停止”的感觉。</p>
+      </div>
+      <div class="legend">
+        <div class="legend-chip">single column</div>
+        <div class="legend-chip">today + pin merged</div>
+        <div class="legend-chip">start / stop mock</div>
+      </div>
+    </section>
+
+    <section class="gallery" id="gallery"></section>
+
+    <section class="guide">
+      <strong>建议看法：</strong> `A1` 最像成熟可落地的小组件，`A2` 印刷感最强，`A3` 更像被编辑过的纸面样张，个性最明显。
+    </section>
+  </main>
+
+  <script>
+    const drafts = [
+      {
+        id: 'folio',
+        title: 'A1 / 书页清单',
+        subtitle: '最稳，标题和任务都最清楚，现已补上边界约束与内部滚动',
+        className: 'widget widget--folio',
+        headline: 'TODAY + PIN',
+        subline: 'Saturday / Apr 25',
+        side: '1 running / 4 tasks',
+        footerLeft: 'tap to start focus',
+        footerRight: 'editorial minimal'
+      },
+      {
+        id: 'ledger',
+        title: 'A2 / 横线账页',
+        subtitle: '像手账里的清单页，印刷感更重，信息更紧',
+        className: 'widget widget--ledger',
+        headline: 'TASK INDEX',
+        subline: 'Today + Pinned',
+        side: 'runtime from desktop',
+        footerLeft: 'ruled paper system',
+        footerRight: 'quiet but dense'
+      },
+      {
+        id: 'proof',
+        title: 'A3 / 批注版心',
+        subtitle: '更有设计个性，像校样纸，适合想要一点辨识度',
+        className: 'widget widget--proof',
+        headline: 'CURRENT SHEET',
+        subline: 'Merged task column',
+        side: 'one active timer',
+        footerLeft: 'annotation mood',
+        footerRight: 'stronger character'
+      }
+    ];
+
+    const baseTasks = [
+      { id: 'task-1', kind: 'today', label: 'TODAY', name: '写周报收尾', note: '25m' },
+      { id: 'task-2', kind: 'pin', label: 'PIN', name: 'Android 小组件草图', note: '40m' },
+      { id: 'task-3', kind: 'today', label: 'TODAY', name: '整理 AI 对话标签', note: '15m' },
+      { id: 'task-4', kind: 'pin', label: 'PIN', name: '补一段启动文案', note: '10m' },
+      { id: 'task-5', kind: 'today', label: 'TODAY', name: '检查日程冲突', note: '08m' },
+      { id: 'task-6', kind: 'pin', label: 'PIN', name: '压一轮按钮文案', note: '12m' },
+      { id: 'task-7', kind: 'today', label: 'TODAY', name: '收一下同步提示', note: '18m' }
+    ];
+
+    const state = {
+      folio: 'task-2',
+      ledger: null,
+      proof: 'task-1'
+    };
+
+    const gallery = document.getElementById('gallery');
+
+    function escapeHtml(value) {
+      return value
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function renderTasks(draftId) {
+      return baseTasks.map((task) => {
+        const isActive = state[draftId] === task.id;
+        return `
+          <div class="task-row">
+            <div class="task-copy">
+              <span class="task-label" data-kind="${escapeHtml(task.kind)}">${escapeHtml(task.label)}</span>
+              <span class="task-name">${escapeHtml(task.name)}</span>
+              <span class="task-note">${escapeHtml(task.note)}</span>
+            </div>
+            <button
+              class="task-button"
+              type="button"
+              data-draft="${escapeHtml(draftId)}"
+              data-task="${escapeHtml(task.id)}"
+              data-active="${String(isActive)}"
+            >${isActive ? 'STOP' : 'START'}</button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderDraft(draft) {
+      return `
+        <article class="draft">
+          <div class="draft-meta">
+            <strong>${escapeHtml(draft.title)}</strong>
+            <span>${escapeHtml(draft.subtitle)}</span>
+          </div>
+          <section class="${escapeHtml(draft.className)}" aria-label="${escapeHtml(draft.title)}">
+            <div class="widget-shell">
+              <header class="widget-header">
+                <div class="widget-title">
+                  <strong>${escapeHtml(draft.headline)}</strong>
+                  <span>${escapeHtml(draft.subline)}</span>
+                </div>
+                <div class="widget-side">${escapeHtml(draft.side)}</div>
+              </header>
+              <div class="task-scroll">
+                <div class="task-list">
+                  ${renderTasks(draft.id)}
+                </div>
+              </div>
+              <footer class="widget-footnote">
+                <span>${escapeHtml(draft.footerLeft)}</span>
+                <span>${escapeHtml(draft.footerRight)}</span>
+              </footer>
+            </div>
+          </section>
+        </article>
+      `;
+    }
+
+    function render() {
+      gallery.innerHTML = drafts.map(renderDraft).join('');
+
+      gallery.querySelectorAll('.task-button').forEach((button) => {
+        button.addEventListener('click', () => {
+          const { draft, task } = button.dataset;
+          if (!draft || !task) {
+            return;
+          }
+          state[draft] = state[draft] === task ? null : task;
+          render();
+        });
+      });
+    }
+
+    render();
+  </script>
+</body>
+</html>
